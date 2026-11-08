@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090514" />
+      <stop offset="50%" stop-color="#1b003a" />
+      <stop offset="100%" stop-color="#00f0ff" />
+    </linearGradient>
+    <linearGradient id="neon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff007f" />
+      <stop offset="100%" stop-color="#00f0ff" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)" />
+  <circle cx="256" cy="256" r="210" fill="none" stroke="url(#neon)" stroke-width="14" stroke-dasharray="24 12" />
+  
+  <!-- Rear Wheel -->
+  <circle cx="150" cy="330" r="60" fill="none" stroke="#00f0ff" stroke-width="18" />
+  <circle cx="150" cy="330" r="25" fill="#00f0ff" />
+
+  <!-- Front Wheel -->
+  <circle cx="362" cy="330" r="60" fill="none" stroke="#00f0ff" stroke-width="18" />
+  <circle cx="362" cy="330" r="25" fill="#00f0ff" />
+
+  <!-- Frame & Body -->
+  <path d="M150 330 L230 250 L310 250 L362 330 M230 250 L270 330 M310 250 L330 180 L290 180" 
+        fill="none" stroke="#ff007f" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Tank & Fairing -->
+  <path d="M220 230 Q270 200 320 220 L300 250 L210 250 Z" fill="#ffd700" />
+
+  <!-- Rider Helmet -->
+  <circle cx="270" cy="150" r="30" fill="#00f0ff" />
+  <rect x="270" y="145" width="25" height="15" rx="5" fill="#090514" />
+
+  <!-- Multiplier Badge -->
+  <g transform="translate(320, 70)">
+    <circle cx="45" cy="45" r="45" fill="#22c55e" stroke="#ffffff" stroke-width="6" />
+    <text x="45" y="58" font-family="Arial Black, Impact, sans-serif" font-size="44" font-weight="900" fill="#ffffff" text-anchor="middle">×2</text>
+  </g>
+</svg>

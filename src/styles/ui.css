@@ -1,0 +1,556 @@
+/* Screen Containers */
+.screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0.24s ease;
+}
+
+.screen.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Header Top Bar */
+.top-bar {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 20;
+}
+
+/* ==================== MAIN MENU ==================== */
+#screen-main-menu {
+  justify-content: space-between;
+  padding: 32px 48px;
+}
+
+.title-container {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.game-title {
+  font-family: var(--title-font);
+  font-size: clamp(2.8rem, 6vw, 4.8rem);
+  line-height: 0.95;
+  letter-spacing: 0.04em;
+  background: linear-gradient(180deg, #ffffff 20%, #00f0ff 85%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 6px 16px rgba(0, 240, 255, 0.45));
+}
+
+.game-subtitle {
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  color: var(--accent-gold);
+  text-transform: uppercase;
+  margin-top: 6px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.menu-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 20px;
+}
+
+.btn-play-large {
+  width: 100%;
+  padding: 20px 36px;
+  font-size: 1.5rem;
+  border-radius: 18px;
+}
+
+.menu-grid-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.footer-hint {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* ==================== GAMEPLAY HUD ==================== */
+#screen-hud {
+  justify-content: space-between;
+  padding: 18px 24px;
+  pointer-events: none;
+}
+
+.hud-top-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hud-level-badge {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hud-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fleet-counter-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.fleet-count-display {
+  font-family: var(--title-font);
+  font-size: clamp(3.2rem, 8vw, 5.2rem);
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 6px 20px rgba(0, 240, 255, 0.6), 0 2px 4px #000000;
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fleet-label {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--primary-glow);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.fleet-popup-tag {
+  position: absolute;
+  top: -16px;
+  right: -55px;
+  font-family: var(--title-font);
+  font-size: 2.2rem;
+  font-weight: 900;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.fleet-popup-tag.positive {
+  color: #22c55e;
+  text-shadow: 0 0 16px rgba(34, 197, 94, 0.8);
+}
+
+.fleet-popup-tag.negative {
+  color: #ef4444;
+  text-shadow: 0 0 16px rgba(239, 68, 68, 0.8);
+}
+
+/* Track Progress Bar */
+.progress-container {
+  width: clamp(240px, 40vw, 420px);
+  height: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #00f0ff, #22c55e);
+  border-radius: 9999px;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.7);
+}
+
+/* PowerUp Badges in HUD */
+.hud-powerups-list {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.powerup-hud-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  animation: pulsePill 1.5s infinite;
+}
+
+@keyframes pulsePill {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ==================== RESULTS SCREEN ==================== */
+.results-modal {
+  width: 100%;
+  max-width: 480px;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+}
+
+.results-title {
+  font-family: var(--title-font);
+  font-size: 3rem;
+  letter-spacing: 0.05em;
+  color: var(--accent-gold);
+  text-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
+}
+
+.stars-row {
+  display: flex;
+  gap: 16px;
+  font-size: 3.2rem;
+  margin: 4px 0;
+}
+
+.star-icon {
+  color: #475569;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s;
+}
+
+.star-icon.filled {
+  color: var(--accent-gold);
+  transform: scale(1.15);
+  text-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
+}
+
+.stats-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-family: var(--title-font);
+  font-size: 1.8rem;
+  color: #ffffff;
+}
+
+.results-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.results-actions .btn {
+  flex: 1;
+}
+
+/* ==================== GARAGE SCREEN ==================== */
+#screen-garage {
+  padding: 80px 24px 24px 24px;
+}
+
+.garage-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  width: 100%;
+  max-width: 1100px;
+  height: calc(100% - 30px);
+}
+
+.garage-viewer-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px;
+  position: relative;
+}
+
+.bike-carousel-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.bike-info-card {
+  text-align: center;
+}
+
+.bike-name {
+  font-family: var(--title-font);
+  font-size: 2.4rem;
+  color: #ffffff;
+}
+
+.bike-subtitle {
+  color: var(--primary-glow);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.bike-stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.stat-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stat-bar-label {
+  width: 90px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #cbd5e1;
+  text-align: left;
+}
+
+.stat-bar-bg {
+  flex: 1;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.stat-bar-val {
+  height: 100%;
+  background: linear-gradient(90deg, #00f0ff, #3b82f6);
+  border-radius: 9999px;
+}
+
+.garage-upgrades-box {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.upgrade-card {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.upgrade-icon {
+  font-size: 2rem;
+}
+
+.upgrade-details {
+  flex: 1;
+  text-align: left;
+}
+
+.upgrade-name {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.upgrade-desc {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.upgrade-pips {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.upgrade-pip {
+  width: 14px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.upgrade-pip.active {
+  background: var(--primary-glow);
+  box-shadow: 0 0 6px var(--primary-glow);
+}
+
+/* ==================== LEVEL SELECT ==================== */
+#screen-level-select {
+  padding: 80px 24px 24px 24px;
+}
+
+.level-select-container {
+  width: 100%;
+  max-width: 960px;
+  height: calc(100% - 20px);
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.env-levels-section {
+  margin-bottom: 24px;
+}
+
+.env-title {
+  font-family: var(--title-font);
+  font-size: 1.6rem;
+  color: var(--primary-glow);
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.levels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 14px;
+}
+
+.level-tile {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform 0.16s, border-color 0.16s;
+}
+
+.level-tile:hover:not(.locked) {
+  transform: translateY(-3px) scale(1.04);
+  border-color: var(--primary-glow);
+}
+
+.level-tile.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tile-number {
+  font-family: var(--title-font);
+  font-size: 1.8rem;
+}
+
+.tile-stars {
+  font-size: 0.9rem;
+  color: var(--accent-gold);
+}
+
+/* ==================== MODALS: Settings, Daily, Ach ==================== */
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 20px;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 28px;
+  position: relative;
+  text-align: center;
+}
+
+.modal-title {
+  font-family: var(--title-font);
+  font-size: 2.2rem;
+  color: var(--primary-glow);
+  margin-bottom: 20px;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.setting-label {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.setting-input {
+  accent-color: var(--primary-glow);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .garage-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow-y: auto;
+  }
+}
