@@ -37,19 +37,19 @@ describe('Progression and Economy', () => {
   it('calculates level completion rewards accurately', () => {
     const rewards = economyManager.calculateLevelRewards({
       levelNumber: 1,
-      survivingFleet: 10,
       collectedCoins: 20,
+      tookZeroDamage: true,
     });
 
     // baseReward = 50 + 1 * 10 = 60
-    // fleetBonus = 10 * 4 = 40
+    // cleanBonus = 40 (tookZeroDamage)
     // collectedCoins = 20
     // upgradeBonus = 0
     expect(rewards.baseReward).toBe(60);
-    expect(rewards.fleetBonus).toBe(40);
+    expect(rewards.cleanBonus).toBe(40);
     expect(rewards.collectedCoins).toBe(20);
     expect(rewards.totalCoins).toBe(120);
-    expect(rewards.stars).toBe(2);
+    expect(rewards.stars).toBe(3);
   });
 
   it('manages coins correctly without allowing negative balances', () => {
@@ -67,13 +67,13 @@ describe('Progression and Economy', () => {
 
   it('handles upgrade purchasing and tier benefits', () => {
     economyManager.addCoins(500);
-    expect(upgradeManager.getLevel('starterFleet')).toBe(0);
-    expect(upgradeManager.canAfford('starterFleet')).toBe(true);
+    expect(upgradeManager.getLevel('acceleration')).toBe(0);
+    expect(upgradeManager.canAfford('acceleration')).toBe(true);
 
-    const bought = upgradeManager.purchaseUpgrade('starterFleet');
+    const bought = upgradeManager.purchaseUpgrade('acceleration');
     expect(bought).toBe(true);
-    expect(upgradeManager.getLevel('starterFleet')).toBe(1);
-    expect(upgradeManager.getStarterFleetBonus()).toBe(1);
+    expect(upgradeManager.getLevel('acceleration')).toBe(1);
+    expect(upgradeManager.getAccelerationBonus()).toBeCloseTo(0.12);
     expect(economyManager.coins).toBe(400); // 500 - 100
   });
 

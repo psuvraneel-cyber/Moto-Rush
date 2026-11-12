@@ -41,12 +41,12 @@ export class DailyChallengeManager {
         icon: '🪙',
       },
       {
-        id: 'pass_multipliers',
-        title: 'Fleet Amplifier',
-        description: 'Pass through 5 multiplier gates',
+        id: 'near_miss_master',
+        title: 'Highway Acrobat',
+        description: 'Perform 5 near-miss overtakes in traffic',
         target: 5,
         reward: 150,
-        icon: '✖️',
+        icon: '⚡',
       },
     ];
   }

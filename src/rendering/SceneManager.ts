@@ -25,13 +25,17 @@ export class SceneManager {
     this.applyEnvironment(ENVIRONMENTS.sunny_city.id, 500);
   }
 
-  public applyEnvironment(envId: string, trackLength: number): void {
+  public applyEnvironment(envId: string, trackLength: number, isEndless: boolean = false): void {
     const env: EnvironmentConfig = ENVIRONMENTS[envId] || ENVIRONMENTS.sunny_city;
     this.scene.background = new THREE.Color(env.skyColor);
     this.scene.fog = new THREE.Fog(env.fogColor, env.fogNear, env.fogFar);
 
     this.lighting.updateForEnvironment(env);
-    this.environmentManager.setEnvironment(env.id, trackLength);
+    this.environmentManager.setEnvironment(env.id, trackLength, isEndless);
+  }
+
+  public update(dt: number, playerZ: number): void {
+    this.environmentManager.update(dt, playerZ);
   }
 
   public render(): void {

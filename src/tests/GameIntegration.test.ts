@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
 import { Game } from '../core/Game';
 import { GameState } from '../core/GameState';
+import { GlobalEvents } from '../core/EventBus';
 
 vi.mock('../rendering/Renderer', () => {
   return {
@@ -49,6 +50,7 @@ describe('Game Full Integration Suite', () => {
           setValueAtTime: vi.fn(),
           exponentialRampToValueAtTime: vi.fn(),
           linearRampToValueAtTime: vi.fn(),
+          setTargetAtTime: vi.fn(),
         },
         connect: vi.fn(),
         disconnect: vi.fn(),
@@ -112,41 +114,52 @@ describe('Game Full Integration Suite', () => {
     expect(uiLayer.querySelector('.game-title')?.textContent).toContain('MOTO RUSH 3D');
   });
 
-  it('starts campaign level 1 and sets up track & entities', () => {
+  it('starts campaign level 1 with strictly ONE motorcycle and ONE rider in scene graph', () => {
     const game = new Game(canvas);
     game.startCampaignLevel(1);
 
     expect(game.stateMachine.current).toBe(GameState.RUNNING);
     expect(game.campaignMode.levelNumber).toBe(1);
-    expect(game.fleetManager.count).toBeGreaterThanOrEqual(1);
-    expect(game.gateManager.pairs.length).toBe(3);
+    expect(game.motorcycle.mesh).toBeDefined();
+
+    // Verify scene graph contains exactly one motorcycle mesh
+    const bikeMeshes = game.sceneManager.scene.children.filter(
+      (c) => c.name === 'motorcycle_root'
+    );
+    expect(bikeMeshes.length).toBe(1);
+
+    // Verify no gate manager or fleet manager exists on game
+    expect((game as any).fleetManager).toBeUndefined();
+    expect((game as any).gateManager).toBeUndefined();
   });
 
-  it('handles gate passing and multiplies fleet', () => {
+  it('executes near-miss overtakes and awards bonus combo score', () => {
     const game = new Game(canvas);
     game.startCampaignLevel(1);
 
-    const initialFleet = game.fleetManager.count;
+    const coinsBefore = game.coinManager.collected;
+    game.eventBus.emit(GlobalEvents.NEAR_MISS);
 
-    // Simulate player passing gate pair 1 (z=60) on left lane (+3 bikes)
-    game.playerController.reset(-2.5, 60);
-    game.gateManager.update(0.016, -2.5, 60);
-
-    expect(game.fleetManager.count).toBe(initialFleet + 3);
+    // Near miss awards bonus coins and increments streak
+    expect(game.coinManager.collected).toBeGreaterThanOrEqual(coinsBefore + 5);
   });
 
   it('absorbs damage when shielded', () => {
     const game = new Game(canvas);
     game.startCampaignLevel(2);
 
-    const startCount = game.fleetManager.count;
     game.powerUpManager.activatePowerUp('shield');
-
     expect(game.powerUpManager.isActive('shield')).toBe(true);
 
+    let hitData: any = null;
+    game.eventBus.on(GlobalEvents.OBSTACLE_HIT, (data) => {
+      hitData = data;
+    });
+
     // Obstacle hit while shielded
-    game.obstacleManager.update(0.016, new THREE.Vector3(0, 0, 190), true);
-    expect(game.fleetManager.count).toBe(startCount); // 0 damage taken
+    game.obstacleManager.update(0.016, new THREE.Vector3(2.5, 0, 270), true);
+    expect(hitData).not.toBeNull();
+    expect(hitData.wasShielded).toBe(true);
   });
 
   it('completes level and awards coins upon crossing finish line', () => {
@@ -170,7 +183,7 @@ describe('Game Full Integration Suite', () => {
     expect(game.saveManager.data.unlockedLevel).toBe(2);
   });
 
-  it('allows unlocking vehicles and purchasing permanent upgrades', () => {
+  it('allows unlocking vehicles and purchasing permanent racing upgrades', () => {
     const game = new Game(canvas);
     game.economyManager.addCoins(1000);
 
@@ -180,13 +193,11 @@ describe('Game Full Integration Suite', () => {
     expect(game.garageManager.isUnlocked('urban_comet')).toBe(true);
     expect(game.saveManager.data.selectedBikeId).toBe('urban_comet');
 
-    // Upgrade starter fleet (100 coins)
-    const upgraded = game.upgradeManager.purchaseUpgrade('starterFleet');
+    // Upgrade engine acceleration (100 coins)
+    const upgraded = game.upgradeManager.purchaseUpgrade('acceleration');
     expect(upgraded).toBe(true);
-    expect(game.upgradeManager.getLevel('starterFleet')).toBe(1);
-
-    // Now level 1 starts with level bonus (1) + upgrade bonus (1) + bike bonus (1) = 3 bikes!
-    game.startCampaignLevel(1);
-    expect(game.fleetManager.count).toBe(3);
+    expect(game.upgradeManager.getLevel('acceleration')).toBe(1);
+    expect(game.upgradeManager.getAccelerationBonus()).toBeCloseTo(0.12);
+    expect(game.economyManager.coins).toBe(600); // 1000 - 300 - 100
   });
 });

@@ -1,0 +1,152 @@
+{
+  "project": "MOTO RUSH 3D: CONVOY MAYHEM",
+  "version": "1.0.0",
+  "format": "GLB",
+  "assets": [
+    {
+      "id": "street_racer",
+      "category": "motorcycles",
+      "priority": 1,
+      "name": "Street Racer (Hero)",
+      "pipeline": "Meshy Text-to-3D / Multi-Image-to-3D",
+      "status": "pending_approval",
+      "targetPolycount": "15,000 - 25,000 tris",
+      "textureRes": "2048x2048 PBR",
+      "stagingPath": "public/assets/generated/staging/street_racer.glb",
+      "productionPath": "public/assets/models/motorcycles/street_racer.glb",
+      "dimensions": { "x": 0.8, "y": 1.25, "z": 2.1 },
+      "pivots": ["chassis", "front_wheel", "rear_wheel", "rider_mount"]
+    },
+    {
+      "id": "hero_rider",
+      "category": "riders",
+      "priority": 2,
+      "name": "Pro Circuit Rider",
+      "pipeline": "Meshy Text-to-3D + Auto-Rig",
+      "status": "pending_approval",
+      "targetPolycount": "10,000 - 15,000 tris",
+      "textureRes": "1024x1024 PBR",
+      "stagingPath": "public/assets/generated/staging/hero_rider.glb",
+      "productionPath": "public/assets/models/riders/hero_rider.glb",
+      "dimensions": { "x": 0.65, "y": 1.15, "z": 0.85 }
+    },
+    {
+      "id": "urban_comet",
+      "category": "motorcycles",
+      "priority": 3,
+      "name": "Urban Comet (Cafe Racer)",
+      "pipeline": "Meshy Text-to-3D",
+      "status": "queued",
+      "targetPolycount": "15,000 - 20,000 tris",
+      "productionPath": "public/assets/models/motorcycles/urban_comet.glb"
+    },
+    {
+      "id": "desert_rider",
+      "category": "motorcycles",
+      "priority": 3,
+      "name": "Desert Rider (Adventure Enduro)",
+      "pipeline": "Meshy Text-to-3D",
+      "status": "queued",
+      "targetPolycount": "18,000 - 25,000 tris",
+      "productionPath": "public/assets/models/motorcycles/desert_rider.glb"
+    },
+    {
+      "id": "thunderbolt",
+      "category": "motorcycles",
+      "priority": 3,
+      "name": "Thunderbolt (Electric Superbike)",
+      "pipeline": "Meshy Text-to-3D",
+      "status": "queued",
+      "targetPolycount": "16,000 - 22,000 tris",
+      "productionPath": "public/assets/models/motorcycles/thunderbolt.glb"
+    },
+    {
+      "id": "neon_phantom",
+      "category": "motorcycles",
+      "priority": 3,
+      "name": "Neon Phantom (Cyberpunk)",
+      "pipeline": "Meshy Text-to-3D",
+      "status": "queued",
+      "targetPolycount": "18,000 - 24,000 tris",
+      "productionPath": "public/assets/models/motorcycles/neon_phantom.glb"
+    },
+    {
+      "id": "velocity_x",
+      "category": "motorcycles",
+      "priority": 3,
+      "name": "Velocity X (Streamliner)",
+      "pipeline": "Meshy Text-to-3D",
+      "status": "queued",
+      "targetPolycount": "14,000 - 20,000 tris",
+      "productionPath": "public/assets/models/motorcycles/velocity_x.glb"
+    },
+    {
+      "id": "road_king",
+      "category": "motorcycles",
+      "priority": 3,
+      "name": "Road King (Heavy Cruiser)",
+      "pipeline": "Meshy Text-to-3D",
+      "status": "queued",
+      "targetPolycount": "18,000 - 26,000 tris",
+      "productionPath": "public/assets/models/motorcycles/road_king.glb"
+    },
+    {
+      "id": "hyper_beast",
+      "category": "motorcycles",
+      "priority": 3,
+      "name": "Hyper Beast (Hyper-Naked)",
+      "pipeline": "Meshy Text-to-3D",
+      "status": "queued",
+      "targetPolycount": "18,000 - 25,000 tris",
+      "productionPath": "public/assets/models/motorcycles/hyper_beast.glb"
+    },
+    {
+      "id": "heavy_truck",
+      "category": "obstacles",
+      "priority": 4,
+      "name": "Commercial Heavy Semi Truck",
+      "pipeline": "Meshy Text-to-3D",
+      "status": "queued",
+      "targetPolycount": "12,000 - 18,000 tris",
+      "productionPath": "public/assets/models/obstacles/heavy_truck.glb"
+    },
+    {
+      "id": "delivery_van",
+      "category": "obstacles",
+      "priority": 4,
+      "name": "Delivery Cargo Van",
+      "pipeline": "Meshy Text-to-3D",
+      "status": "queued",
+      "targetPolycount": "8,000 - 12,000 tris",
+      "productionPath": "public/assets/models/obstacles/delivery_van.glb"
+    },
+    {
+      "id": "traffic_car",
+      "category": "obstacles",
+      "priority": 4,
+      "name": "Commuter Sedan",
+      "pipeline": "Meshy Text-to-3D",
+      "status": "queued",
+      "targetPolycount": "8,000 - 12,000 tris",
+      "productionPath": "public/assets/models/obstacles/traffic_car.glb"
+    }
+  ],
+  "proceduralRetention": [
+    {
+      "system": "Road and Highway Asphalt",
+      "reason": "Procedural UV-animated lane stripes, infinite chunk recycling, zero texture streaming latency"
+    },
+    {
+      "system": "Mathematical Gate Portals",
+      "reason": "Dynamic real-time Canvas 2D texture generation for +5, x2, -10 numerical calculations"
+    },
+    {
+      "system": "Convoy Instanced Followers",
+      "reason": "High-speed THREE.InstancedMesh rendering allowing 120+ convoy bikes at 60 FPS on mobile"
+    },
+    {
+      "system": "Coin Rings & Power-Up Gems",
+      "reason": "Rotating procedural emissive geometry with zero load time and instant collision bounding"
+    }
+  ]
+}

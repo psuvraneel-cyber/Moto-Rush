@@ -10,6 +10,12 @@ export class AudioManager {
   private engineFilter: BiquadFilterNode | null = null;
   private engineGain: GainNode | null = null;
   private isEngineRunning: boolean = false;
+  private currentGear: number = 1;
+
+  // Wind noise synthesizer nodes
+  private windNoise: AudioBufferSourceNode | null = null;
+  private windFilter: BiquadFilterNode | null = null;
+  private windGain: GainNode | null = null;
 
   // Music sequencer state
   private isMusicPlaying: boolean = false;
@@ -94,20 +100,240 @@ export class AudioManager {
     this.engineOsc1.start();
     this.engineOsc2.start();
     this.isEngineRunning = true;
+
+    // Continuous dynamic high-speed wind noise generator
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 2);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.5;
+      }
+      this.windNoise = this.ctx.createBufferSource();
+      this.windNoise.buffer = noiseBuffer;
+      this.windNoise.loop = true;
+
+      this.windFilter = this.ctx.createBiquadFilter();
+      this.windFilter.type = 'lowpass';
+      this.windFilter.frequency.setValueAtTime(500, this.ctx.currentTime);
+
+      this.windGain = this.ctx.createGain();
+      this.windGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+
+      this.windNoise.connect(this.windFilter);
+      this.windFilter.connect(this.windGain);
+      this.windGain.connect(this.sfxGain);
+      this.windNoise.start();
+    } catch (_) {}
   }
 
   public updateEnginePitch(speedRatio: number, isTurbo: boolean = false): void {
     if (!this.ctx || !this.engineOsc1 || !this.engineOsc2 || !this.engineFilter || !this.isEngineRunning) return;
 
-    const basePitch = 55;
-    const turboBoost = isTurbo ? 1.6 : 1.0;
-    const freq = (basePitch + speedRatio * 85) * turboBoost;
+    // 6-Speed motorcycle gearbox simulation
+    const speedKmH = speedRatio * 72;
+    let gear = 1;
+    let gearMinSpeed = 0;
+    let gearMaxSpeed = 42;
 
-    this.engineOsc1.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.08);
-    this.engineOsc2.frequency.setTargetAtTime(freq * 1.015, this.ctx.currentTime, 0.08);
+    if (speedKmH > 135) {
+      gear = 6;
+      gearMinSpeed = 130;
+      gearMaxSpeed = 185;
+    } else if (speedKmH > 105) {
+      gear = 5;
+      gearMinSpeed = 100;
+      gearMaxSpeed = 145;
+    } else if (speedKmH > 80) {
+      gear = 4;
+      gearMinSpeed = 75;
+      gearMaxSpeed = 115;
+    } else if (speedKmH > 55) {
+      gear = 3;
+      gearMinSpeed = 50;
+      gearMaxSpeed = 90;
+    } else if (speedKmH > 32) {
+      gear = 2;
+      gearMinSpeed = 28;
+      gearMaxSpeed = 65;
+    }
 
-    const filterCutoff = (300 + speedRatio * 800) * turboBoost;
-    this.engineFilter.frequency.setTargetAtTime(filterCutoff, this.ctx.currentTime, 0.08);
+    // Gear shift acoustic trigger on gear transition
+    if (this.isEngineRunning && gear !== this.currentGear) {
+      this.playGearShift(gear > this.currentGear);
+      this.currentGear = gear;
+    }
+
+    const gearProgress = Math.max(0, Math.min(1, (speedKmH - gearMinSpeed) / (gearMaxSpeed - gearMinSpeed)));
+    const rpmPitch = 55 + (gearProgress * 95) + (gear * 6);
+    const turboBoost = isTurbo ? 1.45 : 1.0;
+    const freq = rpmPitch * turboBoost;
+
+    this.engineOsc1.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.06);
+    this.engineOsc2.frequency.setTargetAtTime(freq * 1.018, this.ctx.currentTime, 0.06);
+
+    const filterCutoff = (320 + gearProgress * 750 + (gear * 50)) * turboBoost;
+    this.engineFilter.frequency.setTargetAtTime(filterCutoff, this.ctx.currentTime, 0.06);
+
+    // Wind noise dynamic scaling with motorcycle speed
+    if (this.windGain && this.windFilter) {
+      const windVol = Math.min(0.24, Math.max(0, (speedRatio - 0.45) * 0.18));
+      const targetVol = this.isMuted ? 0 : windVol;
+      const gainParam = this.windGain.gain;
+      if (typeof gainParam.setTargetAtTime === 'function') {
+        gainParam.setTargetAtTime(targetVol, this.ctx.currentTime, 0.1);
+      } else if (typeof gainParam.setValueAtTime === 'function') {
+        gainParam.setValueAtTime(targetVol, this.ctx.currentTime);
+      } else {
+        gainParam.value = targetVol;
+      }
+
+      const filterParam = this.windFilter.frequency;
+      const targetFreq = 500 + speedRatio * 900;
+      if (typeof filterParam.setTargetAtTime === 'function') {
+        filterParam.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.1);
+      } else if (typeof filterParam.setValueAtTime === 'function') {
+        filterParam.setValueAtTime(targetFreq, this.ctx.currentTime);
+      } else {
+        filterParam.value = targetFreq;
+      }
+    }
+  }
+
+  public playGearShift(isUpshift: boolean = true): void {
+    this.ensureContext();
+    if (!this.ctx || !this.sfxGain || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(isUpshift ? 200 : 130, now);
+    osc.frequency.exponentialRampToValueAtTime(isUpshift ? 75 : 240, now + 0.06);
+
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.09);
+  }
+
+  public playOvertakeWhoosh(): void {
+    this.ensureContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const now = this.ctx.currentTime;
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.28);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.7;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(400, now);
+    filter.frequency.exponentialRampToValueAtTime(1600, now + 0.12);
+    filter.frequency.exponentialRampToValueAtTime(300, now + 0.28);
+    filter.Q.setValueAtTime(3.0, now);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    noise.start(now);
+    noise.stop(now + 0.29);
+  }
+
+  public playTrafficHorn(): void {
+    this.ensureContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const now = this.ctx.currentTime;
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc1.type = 'sawtooth';
+    osc2.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(370, now); // F#4
+    osc2.frequency.setValueAtTime(440, now); // A4 (dissonant car dual-tone)
+
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.setValueAtTime(0.15, now + 0.25);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.4);
+    osc2.stop(now + 0.4);
+  }
+
+  public playTireSqueal(): void {
+    this.ensureContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1400, now);
+    osc.frequency.linearRampToValueAtTime(950, now + 0.25);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1200, now);
+    filter.Q.setValueAtTime(4.0, now);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.3);
+  }
+
+  public playNitroRoar(): void {
+    this.ensureContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const now = this.ctx.currentTime;
+    // Low rumble + hiss
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(90, now);
+    osc.frequency.exponentialRampToValueAtTime(280, now + 0.3);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.65);
   }
 
   public stopEngine(): void {
@@ -131,6 +357,20 @@ export class AudioManager {
         this.engineGain.disconnect();
         this.engineGain = null;
       }
+      if (this.windNoise) {
+        this.windNoise.stop();
+        this.windNoise.disconnect();
+        this.windNoise = null;
+      }
+      if (this.windFilter) {
+        this.windFilter.disconnect();
+        this.windFilter = null;
+      }
+      if (this.windGain) {
+        this.windGain.disconnect();
+        this.windGain = null;
+      }
+      this.currentGear = 1;
     } catch (e) {
       // Ignored
     }
@@ -138,77 +378,6 @@ export class AudioManager {
   }
 
   // --- SOUND EFFECTS ---
-  public playPositiveGate(): void {
-    this.ensureContext();
-    if (!this.ctx || !this.sfxGain) return;
-
-    const now = this.ctx.currentTime;
-    // Harmonic arpeggio (C5, E5, G5, C6)
-    const notes = [523.25, 659.25, 783.99, 1046.5];
-    notes.forEach((freq, i) => {
-      const osc = this.ctx!.createOscillator();
-      const gain = this.ctx!.createGain();
-
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now + i * 0.04);
-
-      gain.gain.setValueAtTime(0.2, now + i * 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.25);
-
-      osc.connect(gain);
-      gain.connect(this.sfxGain!);
-
-      osc.start(now + i * 0.04);
-      osc.stop(now + i * 0.04 + 0.28);
-    });
-  }
-
-  public playNegativeGate(): void {
-    this.ensureContext();
-    if (!this.ctx || !this.sfxGain) return;
-
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(140, now);
-    osc.frequency.exponentialRampToValueAtTime(60, now + 0.25);
-
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-
-    osc.start(now);
-    osc.stop(now + 0.3);
-  }
-
-  public playMultiplierChime(): void {
-    this.ensureContext();
-    if (!this.ctx || !this.sfxGain) return;
-
-    const now = this.ctx.currentTime;
-    const freqs = [659.25, 830.61, 987.77, 1318.51];
-    freqs.forEach((freq, idx) => {
-      const osc = this.ctx!.createOscillator();
-      const gain = this.ctx!.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.05);
-
-      gain.gain.setValueAtTime(0.25, now + idx * 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.45);
-
-      osc.connect(gain);
-      gain.connect(this.sfxGain!);
-
-      osc.start(now + idx * 0.05);
-      osc.stop(now + idx * 0.05 + 0.48);
-    });
-  }
-
   public playCoin(): void {
     this.ensureContext();
     if (!this.ctx || !this.sfxGain) return;
@@ -229,6 +398,51 @@ export class AudioManager {
 
     osc.start(now);
     osc.stop(now + 0.15);
+  }
+
+  public playNearMiss(): void {
+    this.ensureContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.12);
+
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.18);
+  }
+
+  public playComboUp(streak: number = 1): void {
+    this.ensureContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const now = this.ctx.currentTime;
+    const baseFreq = Math.min(1800, 523.25 + streak * 80);
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.15);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.24);
   }
 
   public playCrash(): void {

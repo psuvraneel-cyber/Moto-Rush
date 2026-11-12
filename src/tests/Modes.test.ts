@@ -34,7 +34,7 @@ describe('Game Modes (Campaign & Endless)', () => {
     const campaign = new CampaignMode(saveManager, economyManager, eventBus);
     expect(campaign.levelNumber).toBe(1);
 
-    const rewards = campaign.finishLevel(15, 25);
+    const rewards = campaign.finishLevel(25, true);
     expect(rewards.totalCoins).toBeGreaterThan(0);
     expect(saveManager.data.unlockedLevel).toBe(2);
 
@@ -49,9 +49,9 @@ describe('Game Modes (Campaign & Endless)', () => {
 
     const chunk1 = endless.generateNextChunk();
     expect(chunk1.chunkIndex).toBe(1);
-    expect(chunk1.gatePairs.length).toBeGreaterThan(0);
+    expect(chunk1.coinGroups.length).toBeGreaterThan(0);
 
-    endless.updateDistance(450, 20);
+    endless.updateDistance(450);
     expect(endless.distance).toBe(450);
     expect(endless.bestDistance).toBe(450);
   });

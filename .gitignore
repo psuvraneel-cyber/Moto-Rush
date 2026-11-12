@@ -3,3 +3,9 @@ dist/
 .vite/
 *.local
 .freebuff/
+.agents/
+.cursor/
+.tmp_chrome_diag/
+.tmp_chrome_renderer/
+MOTO_RUSH_3D_Asset_Pack_v1/
+qa/

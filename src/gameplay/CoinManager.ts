@@ -36,6 +36,10 @@ export class CoinManager {
     return this.collectedCount;
   }
 
+  public addBonusCoins(amount: number): void {
+    this.collectedCount += amount;
+  }
+
   public loadCoins(defs: CoinGroupDef[]): void {
     this.clear();
     this.collectedCount = 0;
@@ -88,7 +92,13 @@ export class CoinManager {
     });
   }
 
-  public update(dt: number, heroPos: THREE.Vector3, isMagnetActive: boolean = false, magnetRadius: number = 14): void {
+  public update(
+    dt: number,
+    heroPos: THREE.Vector3,
+    isMagnetActive: boolean = false,
+    isDoubleCoins: boolean = false,
+    magnetRadius: number = 14
+  ): void {
     this.spinAngle += dt * 4.0;
     const heroX = heroPos.x;
     const heroZ = heroPos.z;
@@ -116,10 +126,12 @@ export class CoinManager {
       if (distSq < pickupRadiusSq) {
         coin.collected = true;
         coin.mesh.visible = false;
-        this.collectedCount++;
+        const gain = isDoubleCoins ? 2 : 1;
+        this.collectedCount += gain;
 
         this.eventBus.emit(GlobalEvents.COIN_COLLECTED, {
           totalCollected: this.collectedCount,
+          gain,
           position: coin.mesh.position.clone(),
         });
       }

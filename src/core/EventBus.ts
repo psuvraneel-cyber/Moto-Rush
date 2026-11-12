@@ -40,8 +40,6 @@ export class EventBus {
 
 export const GlobalEvents = {
   STATE_CHANGE: 'state:change',
-  FLEET_UPDATED: 'fleet:updated',
-  GATE_PASSED: 'gate:passed',
   OBSTACLE_HIT: 'obstacle:hit',
   COIN_COLLECTED: 'coin:collected',
   POWERUP_COLLECTED: 'powerup:collected',
@@ -53,4 +51,11 @@ export const GlobalEvents = {
   SETTINGS_CHANGED: 'settings:changed',
   ACHIEVEMENT_UNLOCKED: 'achievement:unlocked',
   DAILY_CHALLENGE_UPDATED: 'daily_challenge:updated',
+  NEAR_MISS: 'game:near_miss',
+  COMBO_UPDATED: 'combo:updated',
+  OVERTAKE: 'game:overtake',
+  NITRO_CHANGED: 'nitro:changed',
+  NITRO_ENGAGED: 'nitro:engaged',
+  NITRO_DISENGAGED: 'nitro:disengaged',
+  RIVAL_OVERTAKEN: 'rival:overtaken',
 } as const;

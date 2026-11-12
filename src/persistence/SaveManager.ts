@@ -1,7 +1,8 @@
 import { CurrentSaveSchema, DEFAULT_SAVE_DATA } from './SaveSchema';
 
 export class SaveManager {
-  private static readonly STORAGE_KEY = 'motorush3d_save_v1';
+  private static readonly STORAGE_KEY_V2 = 'motorush3d_save_v2';
+  private static readonly STORAGE_KEY_V1 = 'motorush3d_save_v1';
   private currentData: CurrentSaveSchema;
 
   constructor() {
@@ -14,13 +15,23 @@ export class SaveManager {
 
   public loadData(): CurrentSaveSchema {
     try {
-      const raw = localStorage.getItem(SaveManager.STORAGE_KEY);
-      if (!raw) {
-        return JSON.parse(JSON.stringify(DEFAULT_SAVE_DATA));
+      const rawV2 = localStorage.getItem(SaveManager.STORAGE_KEY_V2);
+      if (rawV2) {
+        const parsed = JSON.parse(rawV2);
+        return this.validateAndMigrate(parsed);
       }
 
-      const parsed = JSON.parse(raw);
-      return this.validateAndMigrate(parsed);
+      const rawV1 = localStorage.getItem(SaveManager.STORAGE_KEY_V1);
+      if (rawV1) {
+        const parsed = JSON.parse(rawV1);
+        const migrated = this.validateAndMigrate(parsed);
+        // Save migrated data in V2 format
+        this.currentData = migrated;
+        this.saveData();
+        return migrated;
+      }
+
+      return JSON.parse(JSON.stringify(DEFAULT_SAVE_DATA));
     } catch (e) {
       console.warn('Failed to load save data from localStorage, falling back to defaults:', e);
       return JSON.parse(JSON.stringify(DEFAULT_SAVE_DATA));
@@ -29,7 +40,7 @@ export class SaveManager {
 
   public saveData(): boolean {
     try {
-      localStorage.setItem(SaveManager.STORAGE_KEY, JSON.stringify(this.currentData));
+      localStorage.setItem(SaveManager.STORAGE_KEY_V2, JSON.stringify(this.currentData));
       return true;
     } catch (e) {
       console.error('Failed to write save data to localStorage:', e);
@@ -44,6 +55,7 @@ export class SaveManager {
 
     // Clone defaults to fill in any missing fields
     const validated: CurrentSaveSchema = JSON.parse(JSON.stringify(DEFAULT_SAVE_DATA));
+    validated.version = 2;
 
     if (typeof input.coins === 'number' && !isNaN(input.coins) && input.coins >= 0) {
       validated.coins = Math.floor(input.coins);
@@ -61,12 +73,17 @@ export class SaveManager {
       validated.unlockedBikes = Array.from(new Set(input.unlockedBikes.filter((b: unknown): b is string => typeof b === 'string')));
     }
     if (input.upgrades && typeof input.upgrades === 'object') {
+      const u = input.upgrades;
       validated.upgrades = {
-        starterFleet: Math.max(0, Math.min(5, Number(input.upgrades.starterFleet) || 0)),
-        coinBonus: Math.max(0, Math.min(5, Number(input.upgrades.coinBonus) || 0)),
-        shieldDuration: Math.max(0, Math.min(5, Number(input.upgrades.shieldDuration) || 0)),
-        turboDuration: Math.max(0, Math.min(5, Number(input.upgrades.turboDuration) || 0)),
-        fleetRecovery: Math.max(0, Math.min(5, Number(input.upgrades.fleetRecovery) || 0)),
+        acceleration: Math.max(0, Math.min(5, Number(u.acceleration ?? u.starterFleet) || 0)),
+        topSpeed: Math.max(0, Math.min(5, Number(u.topSpeed) || 0)),
+        handling: Math.max(0, Math.min(5, Number(u.handling ?? u.fleetRecovery) || 0)),
+        braking: Math.max(0, Math.min(5, Number(u.braking) || 0)),
+        nitroCapacity: Math.max(0, Math.min(5, Number(u.nitroCapacity ?? u.coinBonus) || 0)),
+        nitroRecovery: Math.max(0, Math.min(5, Number(u.nitroRecovery) || 0)),
+        coinBonus: Math.max(0, Math.min(5, Number(u.coinBonus) || 0)),
+        shieldDuration: Math.max(0, Math.min(5, Number(u.shieldDuration) || 0)),
+        turboDuration: Math.max(0, Math.min(5, Number(u.turboDuration) || 0)),
       };
     }
     if (input.achievements && typeof input.achievements === 'object') {

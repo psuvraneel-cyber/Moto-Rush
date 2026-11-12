@@ -12,11 +12,15 @@ import { MathUtils } from '../utilities/MathUtils';
 export interface UICallbacks {
   onPlayCampaign: (levelNum: number) => void;
   onPlayEndless: () => void;
+  onPlayTimeTrial?: () => void;
   onResume: () => void;
   onRestart: () => void;
   onQuitToMenu: () => void;
   onSelectBike: (bikeId: string) => void;
   onSettingsChanged: () => void;
+  onTouchThrottle?: (active: boolean) => void;
+  onTouchBrake?: (active: boolean) => void;
+  onTouchNitro?: (active: boolean) => void;
 }
 
 export class UIManager {
@@ -24,6 +28,8 @@ export class UIManager {
   private callbacks!: UICallbacks;
   private currentScreenId: string = 'screen-main-menu';
   private garageSelectedBikeIndex: number = 0;
+  private lastPlayedCampaignLevel: number = 1;
+  private lastWasEndless: boolean = false;
 
   constructor(
     private saveManager: SaveManager,
@@ -47,13 +53,14 @@ export class UIManager {
   public init(callbacks: UICallbacks): void {
     this.callbacks = callbacks;
     this.updateCoinDisplays();
+    this.updateMainMenuState();
     this.showScreen('screen-main-menu');
   }
 
   private buildHTML(): void {
     this.container.innerHTML = `
       <!-- TOP BAR -->
-      <div class="top-bar ui-interactive">
+      <div id="main-top-bar" class="top-bar ui-interactive">
         <div class="coin-pill">
           <span class="coin-icon">🪙</span>
           <span id="ui-coin-count">0</span>
@@ -63,58 +70,99 @@ export class UIManager {
         </div>
       </div>
 
-      <!-- MAIN MENU -->
+      <!-- MAIN MENU (HERO 2-COLUMN COMPOSITION) -->
       <div id="screen-main-menu" class="screen ui-interactive">
-        <div class="title-container">
-          <h1 class="game-title">MOTO RUSH 3D</h1>
-          <p class="game-subtitle">CONVOY MAYHEM</p>
-        </div>
-
-        <div class="menu-actions">
-          <button id="btn-play-campaign" class="btn btn-primary btn-play-large">
-            ▶ PLAY CAMPAIGN
-          </button>
-          <button id="btn-play-endless" class="btn btn-accent" style="width:100%; padding:16px;">
-            ⚡ ENDLESS SURVIVAL
-          </button>
-
-          <div class="menu-grid-buttons">
-            <button id="btn-open-garage" class="btn btn-secondary">🏍️ GARAGE</button>
-            <button id="btn-open-levels" class="btn btn-secondary">🗺️ LEVELS</button>
-            <button id="btn-open-challenges" class="btn btn-secondary">📅 DAILY</button>
-            <button id="btn-open-achievements" class="btn btn-secondary">🏆 AWARDS</button>
+        <div class="main-menu-hero-column">
+          <div class="title-container">
+            <h1 class="game-title">MOTO RUSH 3D</h1>
+            <p class="game-subtitle">TRAFFIC RUSH</p>
+            <p class="game-tagline">RIDE. WEAVE. OVERTAKE.</p>
           </div>
-        </div>
 
-        <p class="footer-hint">Desktop: A/D or Drag to Steer &bull; Mobile: Drag Screen</p>
+          <div class="menu-actions">
+            <button id="btn-play-campaign" class="btn btn-primary btn-play-large">
+              ▶ CAREER MODE
+            </button>
+            <button id="btn-play-endless" class="btn btn-accent" style="width:100%; padding:15px;">
+              ⚡ TRAFFIC RUSH
+            </button>
+            <button id="btn-play-timetrial" class="btn btn-green" style="width:100%; padding:14px; background:linear-gradient(135deg, #059669, #10b981); color:#ffffff; font-weight:800; border-radius:14px; border:none; cursor:pointer;">
+              ⏱ TIME TRIAL
+            </button>
+
+            <div class="menu-grid-buttons">
+              <button id="btn-open-garage" class="btn btn-secondary">🏍️ GARAGE</button>
+              <button id="btn-open-levels" class="btn btn-secondary">🗺️ LEVELS</button>
+              <button id="btn-open-challenges" class="btn btn-secondary">📅 DAILY</button>
+              <button id="btn-open-achievements" class="btn btn-secondary">🏆 AWARDS</button>
+            </div>
+          </div>
+
+          <p class="footer-hint">Desktop: W/S Gas/Brake &bull; A/D Steer &bull; Shift/Space Nitro</p>
+        </div>
       </div>
 
-      <!-- HUD -->
+      <!-- RACING HUD -->
       <div id="screen-hud" class="screen">
-        <div class="top-bar ui-interactive" style="position:static;">
-          <div class="hud-top-left">
-            <div id="hud-level-tag" class="hud-level-badge">LEVEL 1</div>
+        <div class="top-bar ui-interactive" style="position:static; display:flex; justify-content:space-between; align-items:center;">
+          <div class="hud-top-left" style="display:flex; align-items:center; gap:12px;">
+            <div id="hud-level-tag" class="hud-level-badge">CAREER #1</div>
+            <div class="hud-speed-pod">
+              <span id="hud-speed-number" class="speed-count-compact">0</span>
+              <span class="speed-unit-compact">KM/H</span>
+            </div>
+            <div id="hud-rank-pill" class="hud-rank-badge" style="display:none;">1st / 4</div>
             <div class="coin-pill">
               <span class="coin-icon">🪙</span>
               <span id="hud-coin-count">0</span>
             </div>
           </div>
-          <button id="btn-pause-open" class="btn btn-secondary btn-icon">⏸</button>
+
+          <div class="hud-center-top" style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <div class="progress-container" style="margin-top:0;">
+              <div id="hud-progress-fill" class="progress-fill"></div>
+            </div>
+            <div id="hud-score-display" class="hud-score-display" style="font-size:0.95rem; margin:0;">
+              <span id="hud-score-number">0</span> PTS
+            </div>
+            <div id="hud-timetrial-clock" class="hud-timetrial-clock" style="display:none; font-weight:800; font-size:1.0rem; color:#ef4444; text-shadow:0 0 10px rgba(239,68,68,0.8);">
+              ⏱ <span id="hud-timetrial-val">35.0</span>s
+            </div>
+          </div>
+
+          <div class="hud-top-right" style="display:flex; align-items:center; gap:12px;">
+            <div class="hud-nitro-container">
+              <span class="hud-nitro-label">NITRO BOOST</span>
+              <div class="hud-nitro-bar-bg">
+                <div id="hud-nitro-fill" class="hud-nitro-bar-fill"></div>
+              </div>
+            </div>
+            <button id="btn-pause-open" class="btn btn-secondary btn-icon">⏸</button>
+          </div>
         </div>
 
-        <div class="hud-center">
-          <div class="fleet-counter-container">
-            <div id="hud-fleet-number" class="fleet-count-display">1</div>
-            <div class="fleet-label">CONVOY FLEET</div>
-            <div id="hud-fleet-popup" class="fleet-popup-tag">+5</div>
+        <!-- NON-BLOCKING FLOATING ALERTS (Outside central vehicle corridor) -->
+        <div class="hud-alerts-layer" style="position:absolute; top:70px; right:24px; display:flex; flex-direction:column; align-items:flex-end; gap:8px; pointer-events:none;">
+          <div id="hud-combo-container" class="hud-combo-badge" style="opacity: 0; transform: scale(0.8); transition: all 0.2s ease;">
+            <span id="hud-combo-label">COMBO x1</span>
+            <span id="hud-near-miss-tag" class="hud-near-miss-tag" style="display:none;">NEAR MISS!</span>
           </div>
-          <div class="progress-container">
-            <div id="hud-progress-fill" class="progress-fill"></div>
+          <div id="hud-near-miss-toast" class="hud-near-miss-toast" style="opacity: 0; transform: translateY(10px) scale(0.85); transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none;">
+            <span id="hud-near-miss-text">⚡ NEAR MISS!</span>
           </div>
           <div id="hud-powerups-list" class="hud-powerups-list"></div>
         </div>
 
-        <div></div>
+        <!-- TOUCH CONTROLS (FOR MOBILE/POINTER) -->
+        <div class="hud-touch-controls ui-interactive">
+          <div style="display:flex; gap:10px;">
+            <button id="btn-touch-brake" class="touch-btn touch-btn-brake" title="Brake">▼<br><span style="font-size:0.7rem;">BRAKE</span></button>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button id="btn-touch-nitro" class="touch-btn touch-btn-nitro" title="Nitro">⚡<br><span style="font-size:0.7rem;">NITRO</span></button>
+            <button id="btn-touch-throttle" class="touch-btn touch-btn-gas" title="Accelerate">▲<br><span style="font-size:0.7rem;">GAS</span></button>
+          </div>
+        </div>
       </div>
 
       <!-- PAUSE OVERLAY -->
@@ -132,28 +180,56 @@ export class UIManager {
 
       <!-- RESULTS SCREEN -->
       <div id="screen-results" class="screen ui-interactive">
-        <div class="glass-panel results-modal">
+        <div class="glass-panel results-modal" style="max-width:520px; width:100%;">
           <h2 id="results-heading" class="results-title">VICTORY!</h2>
-          <div class="stars-row">
+          <div id="res-rank-banner" class="results-rank-banner" style="display:none; font-size:1.3rem; font-weight:900; color:#00f0ff; margin-bottom:8px;">
+            POSITION: <span id="res-rank-val">1st</span> / <span id="res-rank-total">4</span>
+          </div>
+          <div id="res-stars-row" class="stars-row">
             <span id="star-1" class="star-icon">★</span>
             <span id="star-2" class="star-icon">★</span>
             <span id="star-3" class="star-icon">★</span>
           </div>
 
-          <div class="stats-grid">
+          <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 16px 0;">
             <div class="stat-item">
-              <span class="stat-title">Surviving Convoy</span>
-              <span id="res-fleet-val" class="stat-value">12</span>
+              <span id="res-status-label" class="stat-title">Distance</span>
+              <span id="res-status-val" class="stat-value">0m</span>
             </div>
             <div class="stat-item">
-              <span class="stat-title">Coins Earned</span>
-              <span id="res-coins-val" class="stat-value" style="color:var(--accent-gold);">+140</span>
+              <span class="stat-title">Top Speed</span>
+              <span id="res-speed-val" class="stat-value">0 km/h</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-title">Overtakes</span>
+              <span id="res-overtakes-val" class="stat-value" style="color:#00f0ff;">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-title">Near Misses</span>
+              <span id="res-nearmiss-val" class="stat-value" style="color:#f59e0b;">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-title">Clean Streak</span>
+              <span id="res-clean-val" class="stat-value" style="color:#10b981;">0m</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-title">Max Combo</span>
+              <span id="res-combo-val" class="stat-value" style="color:#a855f7;">x1</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-title">Final Score</span>
+              <span id="res-score-val" class="stat-value" style="color:var(--accent-gold);">0 PTS</span>
+            </div>
+            <div class="stat-item">
+              <span id="res-coins-label" class="stat-title">Coins Earned</span>
+              <span id="res-coins-val" class="stat-value" style="color:var(--accent-gold);">+0🪙</span>
             </div>
           </div>
 
           <div class="results-actions">
-            <button id="btn-res-replay" class="btn btn-secondary">↺ REPLAY</button>
+            <button id="btn-res-replay" class="btn btn-secondary">↺ RETRY</button>
             <button id="btn-res-garage" class="btn btn-secondary">🏍️ GARAGE</button>
+            <button id="btn-res-menu" class="btn btn-secondary">🏠 MENU</button>
             <button id="btn-res-next" class="btn btn-primary">NEXT ▶</button>
           </div>
         </div>
@@ -190,8 +266,12 @@ export class UIManager {
                 <div class="stat-bar-bg"><div id="stat-bar-handling" class="stat-bar-val" style="width:85%;"></div></div>
               </div>
               <div class="stat-bar-row">
-                <span class="stat-bar-label">BONUS FLEET</span>
-                <div class="stat-bar-bg"><div id="stat-bar-fleet" class="stat-bar-val" style="width:10%;"></div></div>
+                <span class="stat-bar-label">ACCELERATION</span>
+                <div class="stat-bar-bg"><div id="stat-bar-accel" class="stat-bar-val" style="width:75%;"></div></div>
+              </div>
+              <div class="stat-bar-row">
+                <span class="stat-bar-label">NITRO</span>
+                <div class="stat-bar-bg"><div id="stat-bar-nitro" class="stat-bar-val" style="width:70%;"></div></div>
               </div>
             </div>
 
@@ -210,7 +290,7 @@ export class UIManager {
       <div id="screen-level-select" class="screen ui-interactive">
         <div class="top-bar">
           <button id="btn-level-back" class="btn btn-secondary">← BACK</button>
-          <h2 style="font-family:var(--title-font); font-size:1.8rem; color:var(--primary-glow);">CAMPAIGN MAP</h2>
+          <h2 style="font-family:var(--title-font); font-size:1.8rem; color:var(--primary-glow);">CAREER MAP</h2>
           <div style="width:80px;"></div>
         </div>
 
@@ -300,6 +380,47 @@ export class UIManager {
       target.classList.add('active');
       this.currentScreenId = screenId;
     }
+
+    // Hide main top bar during gameplay HUD, pause, results, garage, or level select to prevent UI overlap
+    const mainTopBar = document.getElementById('main-top-bar');
+    if (mainTopBar) {
+      mainTopBar.style.display = screenId === 'screen-main-menu' ? 'flex' : 'none';
+    }
+
+    if (screenId === 'screen-main-menu') {
+      this.updateMainMenuState();
+    } else if (screenId === 'screen-garage') {
+      this.populateGarage();
+    }
+  }
+
+  public updateMainMenuState(): void {
+    const isUnlocked = this.saveManager.data.unlockedLevel > 5;
+    const endlessBtn = document.getElementById('btn-play-endless') as HTMLButtonElement;
+    if (endlessBtn) {
+      if (isUnlocked) {
+        endlessBtn.classList.remove('btn-locked');
+        endlessBtn.innerHTML = '⚡ TRAFFIC RUSH';
+      } else {
+        endlessBtn.classList.add('btn-locked');
+        endlessBtn.innerHTML = '🔒 TRAFFIC RUSH <span style="font-size:0.8rem; opacity:0.85; margin-left:6px;">(UNLOCKS LEVEL 6)</span>';
+      }
+    }
+  }
+
+  public showToast(message: string): void {
+    let toast = document.getElementById('ui-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'ui-toast';
+      toast.className = 'toast-notification';
+      this.container.appendChild(toast);
+    }
+    toast.innerText = message;
+    toast.classList.add('active');
+    setTimeout(() => {
+      toast?.classList.remove('active');
+    }, 2400);
   }
 
   public updateCoinDisplays(): void {
@@ -312,45 +433,42 @@ export class UIManager {
   }
 
   public updateHUD(
-    fleetCount: number,
+    speedKmh: number,
     delta: number,
     levelNum: number,
     progressRatio: number,
     coins: number,
-    isEndless: boolean = false
-  ): void {
-    const fleetEl = document.getElementById('hud-fleet-number');
-    if (fleetEl) {
-      fleetEl.innerText = MathUtils.formatNumber(fleetCount);
-      fleetEl.style.transform = 'scale(1.22)';
-      setTimeout(() => {
-        fleetEl.style.transform = 'scale(1)';
-      }, 120);
+    isEndless: boolean = false,
+    racingStats?: {
+      nitroRatio?: number;
+      score?: number;
+      rank?: number;
+      totalRacers?: number;
+      timeRemaining?: number;
+      mode?: 'career' | 'traffic_rush' | 'time_trial';
     }
-
-    // Delta popup tag
-    if (delta !== 0) {
-      const popEl = document.getElementById('hud-fleet-popup');
-      if (popEl) {
-        popEl.innerText = delta > 0 ? `+${delta}` : `${delta}`;
-        popEl.className = `fleet-popup-tag ${delta > 0 ? 'positive' : 'negative'}`;
-        popEl.style.opacity = '1';
-        popEl.style.transform = 'translateY(-20px)';
-        setTimeout(() => {
-          popEl.style.opacity = '0';
-          popEl.style.transform = 'translateY(0)';
-        }, 600);
-      }
+  ): void {
+    const speedEl = document.getElementById('hud-speed-number');
+    if (speedEl) {
+      speedEl.innerText = String(Math.max(0, Math.floor(speedKmh)));
     }
 
     const levelTag = document.getElementById('hud-level-tag');
     if (levelTag) {
-      levelTag.innerText = isEndless ? `ENDLESS: ${Math.floor(progressRatio)}m` : `LEVEL ${levelNum}`;
+      if (racingStats?.mode === 'time_trial') {
+        levelTag.innerText = 'TIME TRIAL';
+      } else if (racingStats?.mode === 'traffic_rush' || isEndless) {
+        levelTag.innerText = `TRAFFIC RUSH: ${Math.floor(progressRatio)}m`;
+      } else {
+        levelTag.innerText = `CAREER #${levelNum}`;
+      }
     }
 
     const fill = document.getElementById('hud-progress-fill');
     if (fill) {
-      const pct = isEndless ? 100 : Math.min(100, Math.max(0, progressRatio * 100));
+      const pct = (isEndless || racingStats?.mode === 'traffic_rush' || racingStats?.mode === 'time_trial')
+        ? 100
+        : Math.min(100, Math.max(0, progressRatio * 100));
       fill.style.width = `${pct}%`;
     }
 
@@ -358,30 +476,247 @@ export class UIManager {
     if (coinEl) {
       coinEl.innerText = MathUtils.formatNumber(coins);
     }
+
+    // Racing enhancements:
+    if (racingStats?.nitroRatio !== undefined) {
+      const nitroFill = document.getElementById('hud-nitro-fill');
+      if (nitroFill) {
+        nitroFill.style.width = `${Math.min(100, Math.max(0, Math.round(racingStats.nitroRatio * 100)))}%`;
+      }
+    }
+
+    if (racingStats?.score !== undefined) {
+      const scoreEl = document.getElementById('hud-score-number');
+      if (scoreEl) {
+        scoreEl.innerText = MathUtils.formatNumber(Math.floor(racingStats.score));
+      }
+    }
+
+    const rankPill = document.getElementById('hud-rank-pill');
+    if (rankPill) {
+      if (racingStats?.rank !== undefined && racingStats?.totalRacers !== undefined && racingStats.totalRacers > 1) {
+        rankPill.style.display = 'inline-block';
+        const sfx = this.getRankSuffix(racingStats.rank);
+        rankPill.innerText = `${sfx} / ${racingStats.totalRacers}`;
+      } else {
+        rankPill.style.display = 'none';
+      }
+    }
+
+    const ttClock = document.getElementById('hud-timetrial-clock');
+    const ttVal = document.getElementById('hud-timetrial-val');
+    if (ttClock && ttVal) {
+      if (racingStats?.mode === 'time_trial' && racingStats.timeRemaining !== undefined) {
+        ttClock.style.display = 'block';
+        ttVal.innerText = `${Math.max(0, racingStats.timeRemaining).toFixed(1)}`;
+      } else {
+        ttClock.style.display = 'none';
+      }
+    }
   }
 
-  public showResults(rewards: RewardBreakdown, survivingFleet: number, isEndless: boolean = false): void {
+  private getRankSuffix(rank: number): string {
+    if (rank === 1) return '1st';
+    if (rank === 2) return '2nd';
+    if (rank === 3) return '3rd';
+    return `${rank}th`;
+  }
+
+  public updatePowerUps(powerups: { type: string; name: string; icon: string; remaining: number }[]): void {
+    const list = document.getElementById('hud-powerups-list');
+    if (!list) return;
+
+    if (powerups.length === 0) {
+      list.innerHTML = '';
+      return;
+    }
+
+    list.innerHTML = powerups
+      .map(
+        p => `
+        <div class="powerup-hud-pill">
+          <span>${p.icon}</span>
+          <span>${p.name}</span>
+          <span style="opacity:0.8; font-size:0.75rem; margin-left:3px;">${p.remaining}s</span>
+        </div>
+      `
+      )
+      .join('');
+  }
+
+  public updateCombo(combo: number): void {
+    const comboEl = document.getElementById('hud-combo-container');
+    const labelEl = document.getElementById('hud-combo-label');
+    if (!comboEl || !labelEl) return;
+    if (combo > 1) {
+      labelEl.innerText = `COMBO x${combo}`;
+      comboEl.style.opacity = '1';
+      comboEl.style.transform = 'scale(1.15)';
+      setTimeout(() => {
+        comboEl.style.transform = 'scale(1)';
+      }, 150);
+    } else {
+      comboEl.style.opacity = '0';
+      comboEl.style.transform = 'scale(0.8)';
+    }
+  }
+
+  public showNearMissToast(streak: number): void {
+    const toast = document.getElementById('hud-near-miss-toast');
+    const text = document.getElementById('hud-near-miss-text');
+    if (toast && text) {
+      text.innerText = streak > 1 ? `⚡ NEAR MISS x${streak}!` : '⚡ NEAR MISS!';
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0) scale(1.05)';
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px) scale(0.9)';
+      }, 750);
+    }
+
+    const nearMissTag = document.getElementById('hud-near-miss-tag');
+    if (nearMissTag) {
+      nearMissTag.innerText = streak > 1 ? `NEAR MISS x${streak}!` : 'NEAR MISS!';
+    }
+  }
+
+  public setLastPlayedCampaignLevel(lvl: number): void {
+    this.lastPlayedCampaignLevel = lvl;
+    this.lastWasEndless = false;
+  }
+
+  public showResults(
+    rewards: RewardBreakdown,
+    survivingFleet: number,
+    isEndless: boolean = false,
+    endlessDistance: number = 0,
+    endlessBestDistance: number = 0,
+    racingStats?: {
+      distance?: number;
+      topSpeedKmH?: number;
+      overtakes?: number;
+      nearMisses?: number;
+      score?: number;
+      rank?: number;
+      totalRacers?: number;
+      cleanDistance?: number;
+      maxCombo?: number;
+      mode?: 'career' | 'traffic_rush' | 'time_trial';
+      isVictory?: boolean;
+    }
+  ): void {
+    this.lastWasEndless = isEndless || racingStats?.mode === 'traffic_rush';
     this.updateCoinDisplays();
 
     const heading = document.getElementById('results-heading');
-    if (heading) {
-      heading.innerText = isEndless ? 'RUN FINISHED' : 'LEVEL COMPLETE';
+    const starsRow = document.getElementById('res-stars-row');
+    const statusLabel = document.getElementById('res-status-label');
+    const statusVal = document.getElementById('res-status-val');
+    const coinsLabel = document.getElementById('res-coins-label');
+    const coinsVal = document.getElementById('res-coins-val');
+    const nextBtn = document.getElementById('btn-res-next') as HTMLButtonElement;
+    const rankBanner = document.getElementById('res-rank-banner');
+    const rankVal = document.getElementById('res-rank-val');
+    const rankTotal = document.getElementById('res-rank-total');
+
+    // Rival race ranking banner
+    if (rankBanner && rankVal && rankTotal) {
+      if (racingStats?.rank !== undefined && racingStats?.totalRacers !== undefined && racingStats.totalRacers > 1) {
+        rankBanner.style.display = 'block';
+        rankVal.innerText = this.getRankSuffix(racingStats.rank);
+        rankTotal.innerText = String(racingStats.totalRacers);
+      } else {
+        rankBanner.style.display = 'none';
+      }
     }
 
-    const fleetVal = document.getElementById('res-fleet-val');
-    if (fleetVal) fleetVal.innerText = `${survivingFleet}`;
+    // Populate grid stats
+    const speedVal = document.getElementById('res-speed-val');
+    if (speedVal) speedVal.innerText = `${Math.floor(racingStats?.topSpeedKmH ?? 0)} km/h`;
 
-    const coinsVal = document.getElementById('res-coins-val');
-    if (coinsVal) coinsVal.innerText = `+${rewards.totalCoins}`;
+    const overtakesVal = document.getElementById('res-overtakes-val');
+    if (overtakesVal) overtakesVal.innerText = String(racingStats?.overtakes ?? 0);
 
-    // Stars
-    for (let i = 1; i <= 3; i++) {
-      const s = document.getElementById(`star-${i}`);
-      if (s) {
-        if (i <= rewards.stars) {
-          s.classList.add('filled');
+    const nearMissVal = document.getElementById('res-nearmiss-val');
+    if (nearMissVal) nearMissVal.innerText = String(racingStats?.nearMisses ?? 0);
+
+    const cleanVal = document.getElementById('res-clean-val');
+    if (cleanVal) cleanVal.innerText = `${Math.floor(racingStats?.cleanDistance ?? 0)}m`;
+
+    const comboVal = document.getElementById('res-combo-val');
+    if (comboVal) comboVal.innerText = `x${racingStats?.maxCombo ?? 1}`;
+
+    const scoreVal = document.getElementById('res-score-val');
+    if (scoreVal) scoreVal.innerText = `${MathUtils.formatNumber(Math.floor(racingStats?.score ?? 0))} PTS`;
+
+    const distToShow = racingStats?.distance ?? (isEndless ? endlessDistance : 0);
+
+    if (racingStats?.mode === 'time_trial') {
+      if (heading) heading.innerText = racingStats.isVictory ? 'TIME TRIAL COMPLETE! ⏱' : "TIME'S UP! ⏱";
+      if (starsRow) starsRow.style.display = 'none';
+      if (statusLabel) statusLabel.innerText = 'Distance Covered';
+      if (statusVal) statusVal.innerText = `${distToShow}m`;
+      if (coinsLabel) coinsLabel.innerText = 'Bonus Coins';
+      if (coinsVal) coinsVal.innerText = `+${rewards.totalCoins}🪙`;
+      if (nextBtn) {
+        nextBtn.style.display = 'inline-flex';
+        nextBtn.innerText = 'RETRY ⏱';
+      }
+    } else if (isEndless || racingStats?.mode === 'traffic_rush') {
+      if (heading) heading.innerText = 'RUN FINISHED ⚡';
+      if (starsRow) starsRow.style.display = 'none';
+      if (statusLabel) statusLabel.innerText = 'Distance Reached';
+      if (statusVal) statusVal.innerText = `${distToShow}m (Best: ${endlessBestDistance}m)`;
+      if (coinsLabel) coinsLabel.innerText = 'Run Coins';
+      if (coinsVal) coinsVal.innerText = `+${rewards.totalCoins}🪙`;
+      if (nextBtn) {
+        nextBtn.style.display = 'inline-flex';
+        nextBtn.innerText = 'RETRY ⚡';
+      }
+    } else {
+      if (starsRow) starsRow.style.display = 'flex';
+      if (statusLabel) statusLabel.innerText = 'Distance';
+      if (statusVal) statusVal.innerText = `${distToShow}m`;
+      if (coinsLabel) coinsLabel.innerText = 'Coins Earned';
+      if (coinsVal) coinsVal.innerText = `+${rewards.totalCoins}🪙`;
+
+      if (racingStats && racingStats.isVictory === false) {
+        if (heading) {
+          heading.innerText = 'CRASHED! 💥';
+          heading.style.color = '#ef4444';
+          heading.style.textShadow = '0 0 20px rgba(239, 68, 68, 0.8)';
+        }
+        if (starsRow) starsRow.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+      } else {
+        if (heading) {
+          heading.style.color = '';
+          heading.style.textShadow = '';
+        }
+        if (this.lastPlayedCampaignLevel >= 30) {
+          if (heading) heading.innerText = 'CAREER COMPLETE! 🏆';
+          if (nextBtn) {
+            nextBtn.style.display = 'inline-flex';
+            nextBtn.innerText = 'MAP 🗺️';
+          }
         } else {
-          s.classList.remove('filled');
+          if (heading) heading.innerText = rewards.stars > 0 ? 'VICTORY! 🏁' : 'RACE FAILED';
+          if (nextBtn) {
+            nextBtn.style.display = 'inline-flex';
+            nextBtn.innerText = 'NEXT ▶';
+          }
+        }
+      }
+
+      // Stars
+      for (let i = 1; i <= 3; i++) {
+        const s = document.getElementById(`star-${i}`);
+        if (s) {
+          if (i <= rewards.stars) {
+            s.classList.add('filled');
+          } else {
+            s.classList.remove('filled');
+          }
         }
       }
     }
@@ -397,7 +732,7 @@ export class UIManager {
     if (nameEl) nameEl.innerText = bike.name;
 
     const subEl = document.getElementById('garage-bike-subtitle');
-    if (subEl) subEl.innerText = bike.subtitle;
+    if (subEl) subEl.innerText = bike.subtitle ?? '';
 
     const speedBar = document.getElementById('stat-bar-speed');
     if (speedBar) speedBar.style.width = `${bike.speedRating}%`;
@@ -405,8 +740,11 @@ export class UIManager {
     const handleBar = document.getElementById('stat-bar-handling');
     if (handleBar) handleBar.style.width = `${bike.handlingRating}%`;
 
-    const fleetBar = document.getElementById('stat-bar-fleet');
-    if (fleetBar) fleetBar.style.width = `${(bike.bonusFleet / 6) * 100}%`;
+    const accelBar = document.getElementById('stat-bar-accel');
+    if (accelBar) accelBar.style.width = `${bike.accelerationRating}%`;
+
+    const nitroBar = document.getElementById('stat-bar-nitro');
+    if (nitroBar) nitroBar.style.width = `${bike.nitroRating}%`;
 
     const actionBtn = document.getElementById('btn-garage-action') as HTMLButtonElement;
     if (actionBtn) {
@@ -437,11 +775,14 @@ export class UIManager {
 
     list.innerHTML = '';
     const types: UpgradeType[] = [
-      'starterFleet',
-      'coinBonus',
+      'acceleration',
+      'topSpeed',
+      'handling',
+      'braking',
+      'nitroCapacity',
       'shieldDuration',
       'turboDuration',
-      'fleetRecovery',
+      'coinBonus',
     ];
 
     for (const t of types) {
@@ -658,8 +999,44 @@ export class UIManager {
 
     document.getElementById('btn-play-endless')?.addEventListener('click', () => {
       this.audioManager.playClick();
+      if (this.saveManager.data.unlockedLevel <= 5) {
+        this.showToast('Complete Career Level 5 to unlock Traffic Rush!');
+        return;
+      }
       this.callbacks.onPlayEndless();
     });
+
+    document.getElementById('btn-play-timetrial')?.addEventListener('click', () => {
+      this.audioManager.playClick();
+      this.callbacks.onPlayTimeTrial?.();
+    });
+
+    // Touch controls (Mobile & pointer dragging)
+    const bindTouch = (id: string, action: 'throttle' | 'brake' | 'nitro') => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const getCb = () => {
+        if (!this.callbacks) return undefined;
+        if (action === 'throttle') return this.callbacks.onTouchThrottle;
+        if (action === 'brake') return this.callbacks.onTouchBrake;
+        return this.callbacks.onTouchNitro;
+      };
+      const start = (e: Event) => {
+        e.preventDefault();
+        getCb()?.(true);
+      };
+      const end = (e: Event) => {
+        e.preventDefault();
+        getCb()?.(false);
+      };
+      el.addEventListener('pointerdown', start);
+      el.addEventListener('pointerup', end);
+      el.addEventListener('pointerleave', end);
+      el.addEventListener('pointercancel', end);
+    };
+    bindTouch('btn-touch-throttle', 'throttle');
+    bindTouch('btn-touch-brake', 'brake');
+    bindTouch('btn-touch-nitro', 'nitro');
 
     // Navigation buttons
     document.getElementById('btn-open-garage')?.addEventListener('click', () => {
@@ -812,6 +1189,7 @@ export class UIManager {
     });
     document.getElementById('btn-res-garage')?.addEventListener('click', () => {
       this.audioManager.playClick();
+      this.callbacks.onQuitToMenu();
       this.garageSelectedBikeIndex = MOTORCYCLES.findIndex(
         b => b.id === this.saveManager.data.selectedBikeId
       );
@@ -819,9 +1197,24 @@ export class UIManager {
       this.populateGarage();
       this.showScreen('screen-garage');
     });
+    document.getElementById('btn-res-menu')?.addEventListener('click', () => {
+      this.audioManager.playClick();
+      this.callbacks.onQuitToMenu();
+      this.showScreen('screen-main-menu');
+    });
     document.getElementById('btn-res-next')?.addEventListener('click', () => {
       this.audioManager.playClick();
-      this.callbacks.onPlayCampaign(this.saveManager.data.unlockedLevel);
+      if (this.lastWasEndless) {
+        this.callbacks.onPlayEndless();
+        return;
+      }
+      if (this.lastPlayedCampaignLevel >= 30) {
+        this.populateLevelSelect();
+        this.showScreen('screen-level-select');
+        return;
+      }
+      const nextLvl = this.lastPlayedCampaignLevel + 1;
+      this.callbacks.onPlayCampaign(Math.min(nextLvl, this.saveManager.data.unlockedLevel));
     });
   }
 }

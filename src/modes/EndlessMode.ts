@@ -1,13 +1,11 @@
 import { SaveManager } from '../persistence/SaveManager';
-import { GatePairDef, ObstacleDef, CoinGroupDef, PowerUpDef } from '../levels/LevelDefinitions';
-import { GateEffect } from '../gameplay/GateCalculator';
+import { ObstacleDef, CoinGroupDef, PowerUpDef } from '../levels/LevelDefinitions';
 import { MathUtils } from '../utilities/MathUtils';
 
 export interface GeneratedChunk {
   chunkIndex: number;
   startZ: number;
   endZ: number;
-  gatePairs: GatePairDef[];
   obstacles: ObstacleDef[];
   coinGroups: CoinGroupDef[];
   powerUps: PowerUpDef[];
@@ -51,11 +49,20 @@ export class EndlessMode {
     }
   }
 
-  public updateDistance(playerZ: number, fleetCount: number): void {
+  public updateDistance(playerZ: number, pointsBonus: number = 0): void {
     this.currentDistance = Math.max(0, playerZ);
-    this.currentScore += fleetCount * 0.1;
+    this.currentScore = Math.floor(this.currentDistance * 1.5 + pointsBonus);
 
-    // Check personal bests
+    // Check personal bests in memory
+    if (this.currentDistance > this.saveManager.data.endless.bestDistance) {
+      this.saveManager.data.endless.bestDistance = Math.floor(this.currentDistance);
+    }
+    if (this.currentScore > this.saveManager.data.endless.bestScore) {
+      this.saveManager.data.endless.bestScore = Math.floor(this.currentScore);
+    }
+  }
+
+  public saveRecord(): void {
     if (this.currentDistance > this.saveManager.data.endless.bestDistance) {
       this.saveManager.data.endless.bestDistance = Math.floor(this.currentDistance);
     }
@@ -63,6 +70,11 @@ export class EndlessMode {
       this.saveManager.data.endless.bestScore = Math.floor(this.currentScore);
     }
     this.saveManager.saveData();
+  }
+
+  public getSpeedMultiplier(): number {
+    // Gradual speed scaling up to +50% at 2000m
+    return 1.0 + Math.min(0.5, (this.currentDistance / 2000) * 0.5);
   }
 
   public shouldGenerateNextChunk(playerZ: number): boolean {
@@ -75,45 +87,50 @@ export class EndlessMode {
     this.nextChunkZ = endZ;
     this.chunkCounter++;
 
-    const gatePairs: GatePairDef[] = [];
     const obstacles: ObstacleDef[] = [];
     const coinGroups: CoinGroupDef[] = [];
     const powerUps: PowerUpDef[] = [];
 
-    // Gate pair midway through chunk
-    const gateZ = startZ + 45;
-    const isMult = this.rng() > 0.4;
-    const leftEffect: GateEffect = isMult
-      ? { operation: 'MULTIPLY', value: this.rng() > 0.6 ? 3 : 2 }
-      : { operation: 'ADD', value: Math.floor(5 + this.rng() * 20) };
-
-    const rightEffect: GateEffect = this.rng() > 0.5
-      ? { operation: 'SUBTRACT', value: Math.floor(5 + this.rng() * 15) }
-      : { operation: 'DIVIDE', value: 2 };
-
-    // Swap sides randomly
-    const swap = this.rng() > 0.5;
-    gatePairs.push({
-      z: gateZ,
-      left: swap ? rightEffect : leftEffect,
-      right: swap ? leftEffect : rightEffect,
-    });
-
-    // Obstacles ahead of or after gate (avoiding direct collision with gate)
+    // Obstacles scale with chunkCounter (increasing frequency and hazard variety)
     if (this.chunkCounter > 1) {
-      const obsType = this.rng() > 0.6 ? 'traffic' : this.rng() > 0.5 ? 'barrier_small' : 'spinner';
-      const obsX = (this.rng() - 0.5) * 4.5;
-      obstacles.push({
-        type: obsType,
-        x: obsX,
-        z: startZ + 85,
-        speed: obsType === 'traffic' ? 8 : 4,
-      });
+      const allObstacleTypes: ObstacleDef['type'][] = [
+        'barrier_small',
+        'barrier_large',
+        'traffic',
+        'delivery_van',
+        'heavy_truck',
+        'traffic_cones',
+        'oil_slick',
+        'pothole',
+        'spinner',
+        'crusher',
+        'swinging_barrier',
+        'road_gate',
+        'construction_zone',
+      ];
+
+      const numObstacles = this.chunkCounter > 8 && this.rng() > 0.5 ? 2 : 1;
+      for (let i = 0; i < numObstacles; i++) {
+        const obsTypeIndex = Math.floor(this.rng() * allObstacleTypes.length);
+        const obsType = allObstacleTypes[obsTypeIndex];
+
+        // Ensure fair open lane by choosing a distinct lane (-2.6, 0, or +2.6)
+        const laneChoice = this.rng() > 0.66 ? -2.6 : this.rng() > 0.33 ? 2.6 : 0;
+        const obsZ = startZ + (i === 0 ? 82 : 105);
+
+        obstacles.push({
+          type: obsType,
+          x: laneChoice,
+          z: obsZ,
+          speed: obsType === 'traffic' || obsType === 'delivery_van' || obsType === 'heavy_truck' ? 6 + Math.min(6, this.chunkCounter * 0.25) : 3.5,
+          range: obsType === 'traffic' ? 1.5 : undefined,
+        });
+      }
     }
 
     // Coins
     coinGroups.push({
-      pattern: 'line',
+      pattern: this.rng() > 0.5 ? 'arc' : 'line',
       startX: (this.rng() - 0.5) * 4.0,
       startZ: startZ + 15,
       count: 6,
@@ -134,7 +151,6 @@ export class EndlessMode {
       chunkIndex: this.chunkCounter,
       startZ,
       endZ,
-      gatePairs,
       obstacles,
       coinGroups,
       powerUps,

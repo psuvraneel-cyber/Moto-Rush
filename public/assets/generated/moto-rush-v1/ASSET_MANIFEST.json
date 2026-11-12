@@ -1,0 +1,228 @@
+{
+  "pack_name": "MOTO RUSH 3D Traffic Racer Asset Pack",
+  "version": "1.0.0",
+  "description": "Original procedural GLB game assets for a stylised 3D motorcycle traffic racer. Assets are intended as editable starter assets and should be visually inspected and adjusted to match the game.",
+  "coordinate_system": {
+    "up": "+Y",
+    "vehicle_forward": "+Z",
+    "units": "meters"
+  },
+  "integration_root": "public/assets/generated/moto-rush-v1/",
+  "assets": [
+    {
+      "file": "models/traffic/bus.glb",
+      "bytes": 209424,
+      "dimensions_xyz_m": [
+        2.688,
+        3.0,
+        8.285
+      ],
+      "geometry_count": 161,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/traffic/sedan.glb",
+      "bytes": 214888,
+      "dimensions_xyz_m": [
+        2.027,
+        1.67,
+        4.495
+      ],
+      "geometry_count": 153,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/traffic/sports_car.glb",
+      "bytes": 221656,
+      "dimensions_xyz_m": [
+        2.142,
+        1.45,
+        4.595
+      ],
+      "geometry_count": 155,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/traffic/suv.glb",
+      "bytes": 214080,
+      "dimensions_xyz_m": [
+        2.181,
+        1.965,
+        4.795
+      ],
+      "geometry_count": 153,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/traffic/truck.glb",
+      "bytes": 340888,
+      "dimensions_xyz_m": [
+        2.762,
+        3.05,
+        9.045
+      ],
+      "geometry_count": 257,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/traffic/van.glb",
+      "bytes": 199432,
+      "dimensions_xyz_m": [
+        2.181,
+        2.35,
+        6.075
+      ],
+      "geometry_count": 136,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/obstacles/construction_roadblock.glb",
+      "bytes": 8216,
+      "dimensions_xyz_m": [
+        2.8,
+        1.195,
+        0.55
+      ],
+      "geometry_count": 12,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/obstacles/road_barrier.glb",
+      "bytes": 10912,
+      "dimensions_xyz_m": [
+        3.28,
+        1.19,
+        0.42
+      ],
+      "geometry_count": 17,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/obstacles/road_debris.glb",
+      "bytes": 17484,
+      "dimensions_xyz_m": [
+        1.05,
+        0.61,
+        1.233
+      ],
+      "geometry_count": 7,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/obstacles/traffic_barrel.glb",
+      "bytes": 13504,
+      "dimensions_xyz_m": [
+        0.68,
+        1.0,
+        0.68
+      ],
+      "geometry_count": 6,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/obstacles/traffic_cone.glb",
+      "bytes": 9248,
+      "dimensions_xyz_m": [
+        0.52,
+        0.705,
+        0.52
+      ],
+      "geometry_count": 4,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/environment/city_office_tower.glb",
+      "bytes": 215392,
+      "dimensions_xyz_m": [
+        6.75,
+        16.5,
+        5.75
+      ],
+      "geometry_count": 381,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/environment/city_tree.glb",
+      "bytes": 24452,
+      "dimensions_xyz_m": [
+        2.055,
+        4.04,
+        1.447
+      ],
+      "geometry_count": 9,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/environment/highway_sign.glb",
+      "bytes": 7328,
+      "dimensions_xyz_m": [
+        2.65,
+        3.275,
+        0.34
+      ],
+      "geometry_count": 8,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/environment/streetlight.glb",
+      "bytes": 6580,
+      "dimensions_xyz_m": [
+        1.48,
+        5.496,
+        0.36
+      ],
+      "geometry_count": 5,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    },
+    {
+      "file": "models/rider/racing_rider.glb",
+      "bytes": 201652,
+      "dimensions_xyz_m": [
+        0.865,
+        1.505,
+        1.18
+      ],
+      "geometry_count": 33,
+      "format": "GLB",
+      "axes": "Y-up; vehicle forward +Z where applicable",
+      "generated_by": "OpenAI procedural mesh asset pack"
+    }
+  ],
+  "notes": [
+    "Rider is a static stylised riding pose, not a skinned/rigged humanoid. Parent to motorcycle chassis and adjust fit.",
+    "Traffic vehicle models are independently named GLB assets; instantiate and scale using actual model bounds.",
+    "Vehicle body and details are composed of separate named meshes for potential recolouring and tuning.",
+    "GLB geometry is original procedural geometry; no external copyrighted models or textures are included.",
+    "Colours are vertex-colour materials. For higher fidelity, Antigravity may add compatible PBR material tuning and texture details."
+  ]
+}

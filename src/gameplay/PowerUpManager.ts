@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { PowerUpType, PowerUpDef } from '../levels/LevelDefinitions';
 import { UpgradeManager } from '../progression/UpgradeManager';
 import { PlayerController } from '../player/PlayerController';
-import { FleetManager } from '../convoy/FleetManager';
 import { EventBus, GlobalEvents } from '../core/EventBus';
 import { GAME_CONFIG } from '../core/GameConfig';
 
@@ -22,7 +21,6 @@ export class PowerUpManager {
   constructor(
     private upgradeManager: UpgradeManager,
     private playerController: PlayerController,
-    private fleetManager: FleetManager,
     private eventBus: EventBus
   ) {
     this.group = new THREE.Group();
@@ -33,106 +31,86 @@ export class PowerUpManager {
     return (this.activeTimers.get(type) || 0) > 0;
   }
 
+  public consumeShield(): boolean {
+    if (this.isActive('shield')) {
+      this.activeTimers.delete('shield');
+      this.deactivatePowerUp('shield');
+      return true;
+    }
+    return false;
+  }
+
+  public getActivePowerUps(): { type: PowerUpType; name: string; icon: string; remaining: number }[] {
+    const list: { type: PowerUpType; name: string; icon: string; remaining: number }[] = [];
+    const icons: Record<PowerUpType, string> = {
+      shield: '🛡️',
+      turbo: '⚡',
+      magnet: '🧲',
+      repair: '🔧',
+      double_coins: '🪙',
+    };
+    for (const [type, timer] of this.activeTimers.entries()) {
+      if (timer > 0) {
+        list.push({
+          type,
+          name: (GAME_CONFIG.POWERUPS as any)[type.toUpperCase()]?.name || type,
+          icon: icons[type] || '✨',
+          remaining: Math.ceil(timer),
+        });
+      }
+    }
+    return list;
+  }
+
   public getRemainingTime(type: PowerUpType): number {
     return Math.max(0, this.activeTimers.get(type) || 0);
   }
 
   public loadPowerUps(defs: PowerUpDef[]): void {
     this.clear();
-
     for (const def of defs) {
-      const itemGroup = this.createPowerUpMesh(def.type);
-      itemGroup.position.set(def.x, 0.8, def.z);
-      this.group.add(itemGroup);
-
+      const mesh = this.createPowerUpMesh(def.type);
+      mesh.position.set(def.x, 1.2, def.z);
+      this.group.add(mesh);
       this.items.push({
         type: def.type,
-        mesh: itemGroup,
+        mesh,
         collected: false,
-        baseY: 0.8,
+        baseY: 1.2,
       });
     }
   }
 
-  private createPowerUpMesh(type: PowerUpType): THREE.Group {
-    const grp = new THREE.Group();
-    let mainColor = 0x3b82f6;
-
-    switch (type) {
-      case 'shield':
-        mainColor = 0x06b6d4;
-        break;
-      case 'turbo':
-        mainColor = 0xfacc15;
-        break;
-      case 'magnet':
-        mainColor = 0xef4444;
-        break;
-      case 'repair':
-        mainColor = 0x22c55e;
-        break;
-      case 'double_coins':
-        mainColor = 0xf59e0b;
-        break;
+  public update(dt: number, heroPosition: THREE.Vector3): void {
+    // 1. Tick active timers
+    for (const [type, timer] of this.activeTimers.entries()) {
+      const next = timer - dt;
+      if (next <= 0) {
+        this.activeTimers.delete(type);
+        this.deactivatePowerUp(type);
+        this.eventBus.emit(GlobalEvents.POWERUP_EXPIRED, { type });
+      } else {
+        this.activeTimers.set(type, next);
+      }
     }
 
-    // Outer floating glowing crystal / sphere
-    const orbGeom = new THREE.OctahedronGeometry(0.5, 0);
-    const orbMat = new THREE.MeshStandardMaterial({
-      color: mainColor,
-      emissive: mainColor,
-      emissiveIntensity: 1.5,
-      roughness: 0.2,
-      metalness: 0.8,
-      wireframe: false,
-    });
-    const orbMesh = new THREE.Mesh(orbGeom, orbMat);
-    orbMesh.castShadow = true;
-    grp.add(orbMesh);
-
-    // Glowing halo ring around it
-    const ringGeom = new THREE.TorusGeometry(0.7, 0.05, 8, 24);
-    const ringMat = new THREE.MeshBasicMaterial({ color: mainColor, wireframe: true });
-    const ringMesh = new THREE.Mesh(ringGeom, ringMat);
-    ringMesh.rotation.x = Math.PI / 2;
-    grp.add(ringMesh);
-
-    return grp;
-  }
-
-  public update(dt: number, heroPos: THREE.Vector3): void {
-    this.spinAngle += dt * 3.0;
-
-    // 1. Update floating pickups
-    const heroX = heroPos.x;
-    const heroZ = heroPos.z;
-    const pickupRadiusSq = 1.8 * 1.8;
+    // 2. Animate items & check collection
+    this.spinAngle += dt * 3.5;
+    const heroBox = new THREE.Box3();
+    heroBox.min.set(heroPosition.x - 0.7, 0, heroPosition.z - 1.2);
+    heroBox.max.set(heroPosition.x + 0.7, 2.0, heroPosition.z + 1.2);
 
     for (const item of this.items) {
       if (item.collected) continue;
 
       item.mesh.rotation.y = this.spinAngle;
-      item.mesh.position.y = item.baseY + Math.sin(this.spinAngle * 0.9) * 0.15;
+      item.mesh.position.y = item.baseY + Math.sin(this.spinAngle * 1.5) * 0.15;
 
-      const dx = heroX - item.mesh.position.x;
-      const dz = heroZ - item.mesh.position.z;
-      if (dx * dx + dz * dz < pickupRadiusSq) {
+      const itemBox = new THREE.Box3().setFromObject(item.mesh);
+      if (heroBox.intersectsBox(itemBox)) {
         item.collected = true;
-        item.mesh.visible = false;
+        this.group.remove(item.mesh);
         this.activatePowerUp(item.type);
-      }
-    }
-
-    // 2. Decrement active timers
-    for (const [type, timer] of this.activeTimers.entries()) {
-      if (timer > 0) {
-        const nextTime = timer - dt;
-        if (nextTime <= 0) {
-          this.activeTimers.delete(type);
-          this.deactivatePowerUp(type);
-        } else {
-          this.activeTimers.set(type, nextTime);
-        }
       }
     }
   }
@@ -152,8 +130,9 @@ export class PowerUpManager {
         duration = GAME_CONFIG.POWERUPS.MAGNET.duration;
         break;
       case 'repair': {
-        const ratio = GAME_CONFIG.POWERUPS.REPAIR.ratio * this.upgradeManager.getRepairMultiplier();
-        this.fleetManager.repair(ratio);
+        // Quick Repair provides temporary emergency shield protection
+        duration = 5;
+        this.activeTimers.set('shield', 5);
         break;
       }
       case 'double_coins':
@@ -175,8 +154,40 @@ export class PowerUpManager {
     if (type === 'turbo') {
       this.playerController.setTurbo(false);
     }
+  }
 
-    this.eventBus.emit(GlobalEvents.POWERUP_EXPIRED, { type });
+  private createPowerUpMesh(type: PowerUpType): THREE.Group {
+    const group = new THREE.Group();
+
+    const colors: Record<PowerUpType, number> = {
+      shield: 0x00f0ff,
+      turbo: 0xff0055,
+      magnet: 0xffd700,
+      repair: 0x22c55e,
+      double_coins: 0xffaa00,
+    };
+    const col = colors[type] || 0xffffff;
+
+    // Glowing orb
+    const geom = new THREE.SphereGeometry(0.5, 16, 16);
+    const mat = new THREE.MeshStandardMaterial({
+      color: col,
+      emissive: col,
+      emissiveIntensity: 0.8,
+      roughness: 0.2,
+      metalness: 0.8,
+    });
+    const orb = new THREE.Mesh(geom, mat);
+    group.add(orb);
+
+    // Orbiting ring
+    const ringGeom = new THREE.TorusGeometry(0.75, 0.04, 8, 24);
+    const ringMat = new THREE.MeshBasicMaterial({ color: col });
+    const ring = new THREE.Mesh(ringGeom, ringMat);
+    ring.rotation.x = Math.PI / 4;
+    group.add(ring);
+
+    return group;
   }
 
   public clear(): void {
@@ -185,6 +196,5 @@ export class PowerUpManager {
     }
     this.items = [];
     this.activeTimers.clear();
-    this.playerController.setTurbo(false);
   }
 }

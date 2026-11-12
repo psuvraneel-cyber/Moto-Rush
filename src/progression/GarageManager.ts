@@ -4,15 +4,16 @@ import { EconomyManager } from './EconomyManager';
 export interface MotorcycleInfo {
   id: string;
   name: string;
-  subtitle: string;
+  subtitle?: string;
   price: number;
-  speedRating: number; // 0-100
-  handlingRating: number; // 0-100
-  bonusFleet: number;
+  speedRating?: number; // 0-100
+  handlingRating?: number; // 0-100
+  accelerationRating?: number; // 0-100
+  nitroRating?: number; // 0-100
   primaryColor: number;
   secondaryColor: number;
   glowColor: number;
-  modelStyle:
+  modelStyle?:
     | 'sport'
     | 'cafe'
     | 'adventure'
@@ -21,6 +22,11 @@ export interface MotorcycleInfo {
     | 'streamliner'
     | 'cruiser'
     | 'hyper';
+  modelUrl?: string;
+  unlocked?: boolean;
+  handlingMultiplier?: number;
+  accelerationBonus?: number;
+  [key: string]: any;
 }
 
 export const MOTORCYCLES: MotorcycleInfo[] = [
@@ -31,11 +37,13 @@ export const MOTORCYCLES: MotorcycleInfo[] = [
     price: 0,
     speedRating: 75,
     handlingRating: 85,
-    bonusFleet: 0,
+    accelerationRating: 75,
+    nitroRating: 70,
     primaryColor: 0xef233c,
     secondaryColor: 0x2b2d42,
     glowColor: 0xff3366,
     modelStyle: 'sport',
+    modelUrl: 'assets/models/motorcycles/street_racer.glb',
   },
   {
     id: 'urban_comet',
@@ -44,7 +52,8 @@ export const MOTORCYCLES: MotorcycleInfo[] = [
     price: 300,
     speedRating: 80,
     handlingRating: 90,
-    bonusFleet: 1,
+    accelerationRating: 85,
+    nitroRating: 75,
     primaryColor: 0x06d6a0,
     secondaryColor: 0x118ab2,
     glowColor: 0x06d6a0,
@@ -57,7 +66,8 @@ export const MOTORCYCLES: MotorcycleInfo[] = [
     price: 750,
     speedRating: 78,
     handlingRating: 88,
-    bonusFleet: 2,
+    accelerationRating: 80,
+    nitroRating: 80,
     primaryColor: 0xf77f00,
     secondaryColor: 0x3d348b,
     glowColor: 0xfcbf49,
@@ -70,7 +80,8 @@ export const MOTORCYCLES: MotorcycleInfo[] = [
     price: 1400,
     speedRating: 90,
     handlingRating: 84,
-    bonusFleet: 2,
+    accelerationRating: 92,
+    nitroRating: 85,
     primaryColor: 0xffd166,
     secondaryColor: 0x073b4c,
     glowColor: 0xffd166,
@@ -83,7 +94,8 @@ export const MOTORCYCLES: MotorcycleInfo[] = [
     price: 2400,
     speedRating: 94,
     handlingRating: 92,
-    bonusFleet: 3,
+    accelerationRating: 95,
+    nitroRating: 90,
     primaryColor: 0x8338ec,
     secondaryColor: 0x3a86ff,
     glowColor: 0xff006e,
@@ -96,7 +108,8 @@ export const MOTORCYCLES: MotorcycleInfo[] = [
     price: 3800,
     speedRating: 97,
     handlingRating: 89,
-    bonusFleet: 4,
+    accelerationRating: 90,
+    nitroRating: 95,
     primaryColor: 0x00f5d4,
     secondaryColor: 0x1a1a2e,
     glowColor: 0x00f5d4,
@@ -109,7 +122,8 @@ export const MOTORCYCLES: MotorcycleInfo[] = [
     price: 5500,
     speedRating: 86,
     handlingRating: 96,
-    bonusFleet: 5,
+    accelerationRating: 88,
+    nitroRating: 85,
     primaryColor: 0x3a86ff,
     secondaryColor: 0x03071e,
     glowColor: 0x48cae4,
@@ -122,7 +136,8 @@ export const MOTORCYCLES: MotorcycleInfo[] = [
     price: 8000,
     speedRating: 100,
     handlingRating: 95,
-    bonusFleet: 6,
+    accelerationRating: 98,
+    nitroRating: 98,
     primaryColor: 0xd90429,
     secondaryColor: 0x14213d,
     glowColor: 0xff0054,

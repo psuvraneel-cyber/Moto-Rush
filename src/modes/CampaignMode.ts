@@ -8,9 +8,9 @@ export class CampaignMode {
   private levelStartedAt: number = 0;
 
   constructor(
-    private saveManager: SaveManager,
-    private economyManager: EconomyManager,
-    private eventBus: EventBus
+    protected saveManager: SaveManager,
+    protected economyManager: EconomyManager,
+    protected eventBus: EventBus
   ) {}
 
   public get currentLevel(): LevelDefinition {
@@ -34,10 +34,9 @@ export class CampaignMode {
     this.levelStartedAt = Date.now();
   }
 
-  public finishLevel(survivingFleet: number, collectedCoins: number, tookZeroDamage: boolean = false): RewardBreakdown {
+  public finishLevel(collectedCoins: number, tookZeroDamage: boolean = false): RewardBreakdown {
     const rewards = this.economyManager.calculateLevelRewards({
       levelNumber: this.levelNumber,
-      survivingFleet,
       collectedCoins,
       tookZeroDamage,
     });
@@ -62,8 +61,8 @@ export class CampaignMode {
     this.eventBus.emit(GlobalEvents.LEVEL_FINISHED, {
       levelNumber: this.levelNumber,
       rewards,
-      survivingFleet,
       collectedCoins,
+      tookZeroDamage,
       nextLevelUnlocked: nextLevel <= LEVELS.length,
     });
 

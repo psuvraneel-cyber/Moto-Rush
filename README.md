@@ -3,6 +3,9 @@
 
 ![MOTO RUSH 3D](public/favicon.svg)
 
+> [!WARNING]
+> 🚧 **This project is currently a Work in Progress.** Features may be incomplete, broken, or subject to significant change. Contributions and feedback are welcome!
+
 > **"Start with one motorcycle. Make smart decisions. Build an enormous motorcycle convoy. Avoid destruction. Reach the finish line with the biggest fleet possible."**
 
 **MOTO RUSH 3D: CONVOY MAYHEM** is a full-featured, commercial-grade browser 3D multiplier runner game built with TypeScript, Three.js, and Vite.

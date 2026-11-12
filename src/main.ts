@@ -10,7 +10,7 @@ window.addEventListener('DOMContentLoaded', () => {
   try {
     const game = new Game(canvas);
     (window as any).__MOTO_RUSH_GAME__ = game;
-    console.log('MOTO RUSH 3D: CONVOY MAYHEM initialized successfully.');
+    console.log('MOTO RUSH 3D: TRAFFIC RUSH initialized successfully.');
   } catch (err) {
     console.error('Fatal initialization error in Game:', err);
   }
